@@ -1,13 +1,24 @@
 package com.boomie.javaio.client.game;
 
-import javax.swing.*;
 
-import java.awt.*;
+import com.boomie.javaio.client.game.entity.EntityManager;
+import com.boomie.javaio.client.game.entity.Player;
+import com.boomie.javaio.client.game.handler.KeyHandler;
+import com.boomie.javaio.client.game.menu.MainMenu;
+import com.boomie.javaio.client.game.menu.Menu;
+import com.boomie.javaio.client.window.Window;
 
-import static com.boomie.javaio.client.game.State.*;
+import java.awt.Canvas;
+import java.awt.Color;
+import java.awt.Graphics;
+import java.awt.event.KeyListener;
+import java.awt.image.BufferStrategy;
+import java.time.Duration;
 
-public class Game extends JPanel implements Runnable
+public class Game extends Canvas implements Runnable
 {
+  public static final int HEIGHT = 600;
+  public static final int WIDTH = HEIGHT * 16 / 9;
   /**
    * Amount of ticks passed in game. Updates every second.
    */
@@ -17,11 +28,7 @@ public class Game extends JPanel implements Runnable
    */
   private long frames = 0;
   /**
-   * Amount of frames drawn in the last second.
-   */
-  private long fps = 0;
-  /**
-   * The last time since a reset happened in ms.
+   * The last time since a reset happened in ns.
    */
   private long lastTime = 0;
   /**
@@ -29,34 +36,42 @@ public class Game extends JPanel implements Runnable
    */
   private boolean running = false;
   /**
-   * If we are limiting fps. Could be an option somewhere later.
-   */
-  private boolean limitFps = false;
-  /**
-   * The fps limit.
-   */
-  private final double fpsLimit = 60.0;
-  /**
    * How many ticks are performed every second.
    */
-  private final long ticksPerSecond = 100;
+  private final double ticksPerSecond = 60.0;
   /**
-   * Current amount of ticks. Resets to 0 every second.
+   * How many nanoseconds between ticks
    */
-  private double ticks = 0.0;
+  private final double nsPerTick = Duration.ofSeconds(1).toNanos() / ticksPerSecond;
   /**
    * The thread that this Game is run on.
    */
   private Thread gameThread;
-  /**
-   * What the current game state is.
-   */
-  private State gameState = MENU;
+
+  private EntityManager manager;
+
+  private KeyHandler input;
+
+  private Window window;
+
+  private Menu menu;
 
   public Game()
   {
+    init();
+  }
+
+  public void init()
+  {
     gameThread = new Thread(this);
-    gameThread.setName("GAME THREAD");
+    gameThread.setName("JavaIO main");
+
+    window = new Window(WIDTH, HEIGHT, "Game", this);
+    manager = new EntityManager(this);
+    input = new KeyHandler();
+    menu = new MainMenu(this, input);
+    manager.add(new Player(this, input));
+    this.addKeyListener(input);
   }
   
   public synchronized void start()
@@ -68,76 +83,100 @@ public class Game extends JPanel implements Runnable
     }
   }
 
+  public synchronized void stop()
+  {
+    if(running)
+    {
+      running = false;
+    }
+  }
+
   private void tick()
   {
-    if(ticks < ticksPerSecond)
+    input.tick();
+    if(menu != null)
     {
-      ++ticks;
+      menu.tick();
+    }
+    else
+    {
+      manager.tick();
     }
 
+    ++tick;
   }
 
   @Override
   public void run()
   {
-    lastTime = System.currentTimeMillis();
+    lastTime = System.nanoTime();
+    double unprocessed = 0.0;
+    long lastTimer1 = System.currentTimeMillis();
     while(running)
     {
-      tick();
+      long now = System.nanoTime();
+      unprocessed += (now - lastTime) / nsPerTick;
+      lastTime = now;
+      while(unprocessed >= 1)
+      {
+        try {
+          tick();
+        } catch (Exception e) {
+          e.printStackTrace();
+        }
+        --unprocessed;
+      }
+
       render();
 
       // print out once per second
-      if(System.currentTimeMillis() - lastTime > 1000)
+      if(System.currentTimeMillis() - lastTimer1 > 1000)
       {
-        lastTime = System.currentTimeMillis();
-        fps = frames;
-        tick += ticks;
-//        System.out.println("tick #" + tick);
-//        System.out.println(fps + "fps");
+        lastTimer1 += 1000;
+        System.out.println(tick + "ticks " + frames + " fps");
         frames = 0;
-        ticks = 0;
+        tick = 0;
       }
     }
   }
 
   private void render()
   {
-    if(!(limitFps) || (frames < fpsLimit))
+    BufferStrategy bs = this.getBufferStrategy();
+    if(bs == null)
     {
-      this.repaint();
+      this.createBufferStrategy(3);
+      requestFocus();
+      return;
     }
-  }
 
-  @Override
-  protected void paintComponent(Graphics g)
-  {
-    super.paintComponent(g);
-    Graphics2D g2d = (Graphics2D) g;
+    Graphics g = bs.getDrawGraphics();
+    g.setColor(Color.WHITE);
+    g.fillRect(0,0, WIDTH, HEIGHT);
 
-    drawDebug(g2d);
+    if(menu != null)
+    {
+      menu.render(g);
+    }
+    else
+    {
+      manager.render(g);
+    }
 
+    g.dispose();
+    bs.show();
 
     ++frames;
   }
 
-  private void drawDebug(Graphics2D g2d)
+  public void setMenu(Menu menu)
   {
-    int maxStrWidth = -1;
-    String[] debugInfo = {
-            fps + " FPS",
-            "tick #" + tick
-    };
-
-    for(int ii = 0; ii < debugInfo.length; ++ii)
-    {
-      g2d.drawString(debugInfo[ii], 0, (ii + 1) * g2d.getFontMetrics(g2d.getFont()).getHeight());
-      int curWidth = g2d.getFontMetrics(g2d.getFont()).stringWidth(debugInfo[ii]);
-      if(curWidth > maxStrWidth)
-      {
-        maxStrWidth = curWidth;
-      }
-    }
-
-    g2d.drawRect(0, 0, maxStrWidth, (debugInfo.length + 1) * g2d.getFontMetrics(g2d.getFont()).getHeight());
+    this.menu = menu;
   }
+
+  public static void main(String[] args)
+  {
+    new Game();
+  }
+
 }
