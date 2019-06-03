@@ -13,7 +13,6 @@ public class Player extends Mob
     private Game game;
     private KeyHandler keyInput;
     private MouseHandler mouseInput;
-    private int fastMod = 1;
 
     public Player(Game game, KeyHandler keyInput, MouseHandler mouseInput)
     {
@@ -26,34 +25,13 @@ public class Player extends Mob
     public void tick()
     {
         super.tick();
-        yVel = 0;
-        xVel = 0;
-        fastMod = 1;
         if(keyInput.getPause().isClicked())
         {
             game.setOverlay(new PauseOverlay(game, keyInput, mouseInput));
         }
-        if(keyInput.getFast().isDown())
-        {
-            fastMod = 3;
-        }
-        if(keyInput.getUp().isDown())
-        {
-            yVel = -1 * fastMod;
-        }
-        if(keyInput.getDown().isDown())
-        {
-            yVel = 1 * fastMod;
-        }
-        if(keyInput.getLeft().isDown())
-        {
-            xVel = -1 * fastMod;
-        }
-        if(keyInput.getRight().isDown())
-        {
-            xVel = 1 * fastMod;
-        }
 
+        this.x = mouseInput.getX();
+        this.y = mouseInput.getY();
     }
 
     @Override
