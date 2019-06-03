@@ -4,8 +4,10 @@ package com.boomie.javaio.client.game;
 import com.boomie.javaio.client.game.entity.EntityManager;
 import com.boomie.javaio.client.game.entity.Player;
 import com.boomie.javaio.client.game.handler.KeyHandler;
+import com.boomie.javaio.client.game.handler.MouseHandler;
 import com.boomie.javaio.client.game.menu.MainMenu;
 import com.boomie.javaio.client.game.menu.Menu;
+import com.boomie.javaio.client.game.overlay.Overlay;
 import com.boomie.javaio.client.window.Window;
 
 import java.awt.Canvas;
@@ -50,11 +52,15 @@ public class Game extends Canvas implements Runnable
 
   private EntityManager manager;
 
-  private KeyHandler input;
+  private KeyHandler keyInput;
+
+  private MouseHandler mouseInput;
 
   private Window window;
 
   private Menu menu;
+
+  private Overlay overlay;
 
   public Game()
   {
@@ -66,12 +72,16 @@ public class Game extends Canvas implements Runnable
     gameThread = new Thread(this);
     gameThread.setName("JavaIO main");
 
-    window = new Window(WIDTH, HEIGHT, "Game", this);
+    keyInput = new KeyHandler();
+    mouseInput = new MouseHandler();
     manager = new EntityManager(this);
-    input = new KeyHandler();
-    menu = new MainMenu(this, input);
-    manager.add(new Player(this, input));
-    this.addKeyListener(input);
+    menu = new MainMenu(this, keyInput, mouseInput);
+    manager.add(new Player(this, keyInput, mouseInput));
+    window = new Window(WIDTH, HEIGHT, "Game", this);
+
+    this.addKeyListener(keyInput);
+    this.addMouseMotionListener(mouseInput);
+    this.addMouseListener(mouseInput);
   }
   
   public synchronized void start()
@@ -93,14 +103,23 @@ public class Game extends Canvas implements Runnable
 
   private void tick()
   {
-    input.tick();
+    keyInput.tick();
+    mouseInput.tick();
+
     if(menu != null)
     {
       menu.tick();
     }
     else
     {
-      manager.tick();
+      if(overlay == null || !overlay.doesPauseGame())
+      {
+        manager.tick();
+      }
+      else
+      {
+        overlay.tick();
+      }
     }
 
     ++tick;
@@ -163,6 +182,11 @@ public class Game extends Canvas implements Runnable
       manager.render(g);
     }
 
+    if(overlay != null)
+    {
+      overlay.render(g);
+    }
+
     g.dispose();
     bs.show();
 
@@ -172,6 +196,11 @@ public class Game extends Canvas implements Runnable
   public void setMenu(Menu menu)
   {
     this.menu = menu;
+  }
+
+  public void setOverlay(Overlay overlay)
+  {
+    this.overlay = overlay;
   }
 
   public static void main(String[] args)

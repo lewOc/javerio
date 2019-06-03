@@ -2,18 +2,21 @@ package com.boomie.javaio.client.game.menu;
 
 import com.boomie.javaio.client.game.Game;
 import com.boomie.javaio.client.game.handler.KeyHandler;
+import com.boomie.javaio.client.game.handler.MouseHandler;
 
 import java.awt.Graphics;
 
 abstract public class Menu
 {
     protected Game game;
-    protected KeyHandler input;
+    protected KeyHandler keyInput;
+    protected MouseHandler mouseInput;
 
-    public Menu(Game game, KeyHandler input)
+    public Menu(Game game, KeyHandler keyInput, MouseHandler mouseInput)
     {
         this.game = game;
-        this.input = input;
+        this.keyInput = keyInput;
+        this.mouseInput = mouseInput;
     }
 
     abstract public void tick();
