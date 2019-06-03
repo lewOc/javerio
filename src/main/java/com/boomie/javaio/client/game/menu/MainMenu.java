@@ -131,7 +131,7 @@ public class MainMenu extends Menu
         }
         else if (selected == MenuItem.Exit)
         {
-            game.stop();
+            // TODO close the game properly
         }
     }
 }
