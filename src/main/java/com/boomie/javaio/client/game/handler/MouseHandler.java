@@ -1,6 +1,8 @@
 package com.boomie.javaio.client.game.handler;
 
 import javax.swing.event.MouseInputListener;
+import java.awt.AWTException;
+import java.awt.Robot;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.List;
@@ -131,6 +133,19 @@ public class MouseHandler implements MouseInputListener
     @Override
     public void mouseExited(MouseEvent e)
     {
+    }
+
+    public void setPos(int x, int y)
+    {
+        try
+        {
+            Robot r = new Robot();
+//            r.mouseMove(x, y);
+        }
+        catch (AWTException e)
+        {
+            e.printStackTrace();
+        }
     }
 
     public void releaseAll()

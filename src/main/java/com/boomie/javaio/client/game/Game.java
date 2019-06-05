@@ -40,7 +40,7 @@ public class Game extends Canvas implements Runnable
   /**
    * How many ticks are performed every second.
    */
-  private final double ticksPerSecond = 60.0;
+  private final double ticksPerSecond = 128.0;
   /**
    * How many nanoseconds between ticks
    */
